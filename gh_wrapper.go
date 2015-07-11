@@ -50,40 +50,41 @@ func (w *GhWrapper) GetUser() *User {
 // GetEvents fetches and returns the last events
 func (w *GhWrapper) GetEvents() []Event {
 	events, _, err := w.client.Activity.ListEventsPerformedByUser(
-		w.GetUser().Login, false, &github.ListOptions{})
+		w.GetUser().Login, false, &github.ListOptions{PerPage: 100})
 	if err != nil {
 		panic(err)
 	}
 	res := make([]Event, len(events))
 
 	for idx, event := range events {
+		base := &BaseEvent{
+			Type:      *event.Type,
+			CreatedAt: *event.CreatedAt,
+		}
+		if event.Org != nil {
+			base.Org = *event.Org.Login
+		} else {
+			base.Org = "-"
+		}
 		switch *event.Type {
 		case "IssuesEvent":
 			res[idx] = &IssueEvent{
-				Type:      *event.Type,
-				Org:       *event.Org.Login,
-				CreatedAt: *event.CreatedAt,
+				Base: base,
 			}
 			json.Unmarshal(*event.RawPayload, &res[idx])
 		case "PullRequestEvent":
 			res[idx] = &PullRequestEvent{
-				Type:      *event.Type,
-				Org:       *event.Org.Login,
-				CreatedAt: *event.CreatedAt,
+				Base: base,
 			}
 			json.Unmarshal(*event.RawPayload, &res[idx])
 		case "IssueCommentEvent":
 			res[idx] = &IssueCommentEvent{
-				Type:      *event.Type,
-				Org:       *event.Org.Login,
-				CreatedAt: *event.CreatedAt,
+				Base: base,
 			}
 			json.Unmarshal(*event.RawPayload, &res[idx])
 		case "PushEvent":
 			res[idx] = &PushEvent{
-				Type:      *event.Type,
-				Org:       *event.Org.Login,
-				CreatedAt: *event.CreatedAt,
+				Base: base,
 			}
 			json.Unmarshal(*event.RawPayload, &res[idx])
 		case "CreateEvent":
